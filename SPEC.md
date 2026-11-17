@@ -46,6 +46,12 @@ the fingerprint is an error. Never pad, never hash a partial range.
   make that practically impossible for distinct encodes, including episodes of the same length
   with identical openings. With 128 bits of output, a hash-level collision among 10^6 files has
   probability below 10^-26. Byte-identical copies share a fingerprint by design.
+- **Worked example of the blind spot:** two 9 589 402-byte AVIs, one a copy of the other with
+  its index tag renamed in place (`idx1` → `JUNK`, 4 bytes at offset 9 400 243). The sampled
+  ranges are `[0, 65536)`, `[4 761 933, 4 827 469)` and `[9 523 866, 9 589 402)`; the edit is
+  outside all three, so both files get the same fingerprint. Accepted for fp1: real tag editors
+  rewrite headers or trailing metadata, which are sampled, and re-encodes or re-muxes change the
+  size. Tightening this (more samples, mtime in the key) would cost reads or stability.
 - **Why key derivation mode:** the context string domain-separates fp1 from plain BLAKE3 of the
   same bytes and from future versions.
 
