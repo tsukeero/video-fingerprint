@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo test --locked
+        working-directory: rust
+
+  python:
+    name: Python ${{ matrix.python }} (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.9", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e python
+      - run: python -m unittest discover -s python/tests -v
+
+  node:
+    name: Node ${{ matrix.node }} (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [20, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+        working-directory: js
+      - run: npm test
+        working-directory: js
+
+  deno:
+    name: Deno (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: npm ci
+        working-directory: js
+      - run: npm run test:deno
+        working-directory: js
+
+  # vectors.json must be exactly what the Python generator writes (fp1 vectors never change)
+  vectors:
+    name: Vectors up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e python
+      - run: python vectors/generate.py
+      - run: git diff --exit-code vectors/vectors.json
+
+  # Every CLI (Rust, Python, Node, Deno, Bun) must print the same fingerprints for the same
+  # real files, around each size boundary of the spec
+  cross-check:
+    name: CLIs agree (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: oven-sh/setup-bun@v2
+      - name: Build and install
+        run: |
+          cargo build --release --locked --manifest-path rust/Cargo.toml
+          python -m pip install -e python
+          (cd js && npm ci)
+      - name: Make test files
+        run: |
+          mkdir -p "$RUNNER_TEMP/files"
+          python - "$RUNNER_TEMP/files" <<'EOF'
+          import random, sys
+          from pathlib import Path
+          C = 65536
+          rng = random.Random(1)
+          for size in [0, 1, C - 1, C, 3 * C, 3 * C + 1, 1_000_003, 5 * 1024 * 1024]:
+              (Path(sys.argv[1]) / f"f{size}.bin").write_bytes(rng.randbytes(size))
+          EOF
+      - name: Compare
+        run: |
+          files=("$RUNNER_TEMP"/files/*.bin)
+          rust/target/release/vfp "${files[@]}" > rust.txt
+          python -m video_fingerprint "${files[@]}" > python.txt
+          node js/cli.js "${files[@]}" > node.txt
+          deno run --allow-read js/cli.js "${files[@]}" > deno.txt
+          bun js/cli.js "${files[@]}" > bun.txt
+          cat rust.txt
+          test "$(wc -l < rust.txt)" -eq "${#files[@]}"
+          status=0
+          for impl in python node deno bun; do
+            if ! diff <(tr -d '\r' < rust.txt) <(tr -d '\r' < "$impl.txt"); then
+              echo "::error::$impl disagrees with rust"
+              status=1
+            fi
+          done
+          exit $status

@@ -1,4 +1,5 @@
 # video-fingerprint
+n[![CI](https://github.com/tsukeero/video-fingerprint/actions/workflows/ci.yml/badge.svg)](https://github.com/tsukeero/video-fingerprint/actions/workflows/ci.yml)
 
 Quick, stable identity for large video files: file size plus three sampled 64 KiB chunks,
 hashed with BLAKE3 → `fp1:<32 hex>`. About three small reads per file regardless of size;
