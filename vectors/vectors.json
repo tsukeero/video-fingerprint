@@ -1,71 +1,72 @@
 {
+  "note": "size is a decimal string: 2^64-1 does not fit a JSON number in every language",
   "version": "fp1",
-  "content": "BLAKE3 XOF (plain hash mode) of the UTF-8 name; byte at offset o = XOF position o",
+  "content": "64 KiB blocks; block i = first 65536 bytes of BLAKE3 XOF (plain hash) of UTF-8 name + u64le(i)",
   "vectors": [
     {
       "name": "empty",
-      "size": 0,
+      "size": "0",
       "fingerprint": "fp1:34d3066a5aec421966a85e57be0139bd"
     },
     {
       "name": "one-byte",
-      "size": 1,
-      "fingerprint": "fp1:f2e032ae6d0852ad805b333173854790"
+      "size": "1",
+      "fingerprint": "fp1:744806f10cd380ceec261f0d3cff8c7a"
     },
     {
       "name": "chunk-minus-1",
-      "size": 65535,
-      "fingerprint": "fp1:76b7ce3c738886408d27ad5d9a2c08f5"
+      "size": "65535",
+      "fingerprint": "fp1:afd7b5f971b0bf54f8e3bf5561917f4d"
     },
     {
       "name": "chunk",
-      "size": 65536,
-      "fingerprint": "fp1:64692f188fa552ab92aedec393144a3f"
+      "size": "65536",
+      "fingerprint": "fp1:5c374ae2bad6013862a374489315edf0"
     },
     {
       "name": "chunk-plus-1",
-      "size": 65537,
-      "fingerprint": "fp1:5f585635dcd3807e8eddecfb37f28f16"
+      "size": "65537",
+      "fingerprint": "fp1:dacfc6fdcd7de72671b12fc52a00f260"
     },
     {
       "name": "whole-file-max",
-      "size": 196608,
-      "fingerprint": "fp1:a98a2c347fabf4e076b40b5d9e4b3041"
+      "size": "196608",
+      "fingerprint": "fp1:5ec6b2c0b06b56d60c658e57d4ae0d92"
     },
     {
       "name": "sampled-min",
-      "size": 196609,
-      "fingerprint": "fp1:141e6ca5b108a6e564470a5bf5eca9a6"
+      "size": "196609",
+      "fingerprint": "fp1:fbd86e6c599c020f6d13ca2367caa725"
     },
     {
       "name": "sampled-min-plus-1",
-      "size": 196610,
-      "fingerprint": "fp1:430c50451a7beef5793f199a90fb1781"
+      "size": "196610",
+      "fingerprint": "fp1:59be38b12fb7ff1281067dda26455eaf"
     },
     {
       "name": "odd-size",
-      "size": 1000003,
-      "fingerprint": "fp1:cb4d1fef0b6de156e41735f22ef6be46"
+      "size": "1000003",
+      "fingerprint": "fp1:c6b6c0c6de59844bf3fcc6a830557286"
     },
     {
       "name": "ten-mib",
-      "size": 10485760,
-      "fingerprint": "fp1:928bc1386f21bf735a6ca7d0832f9064"
+      "size": "10485760",
+      "fingerprint": "fp1:0096019ee883b9e28abe03f57ac784f8"
     },
     {
       "name": "over-4gib",
-      "size": 4294979641,
-      "fingerprint": "fp1:ba3f5427ae650ab66f6188e327bc80c8"
+      "size": "4294979641",
+      "fingerprint": "fp1:5be003d429793081ed2aefd56aa2b918"
     },
     {
       "name": "one-tib",
-      "size": 1099511627776,
-      "fingerprint": "fp1:9afe5deeace6d3c864fb52ae8334f9c2"
+      "size": "1099511627776",
+      "fingerprint": "fp1:3e49fa7547d4a5d9fad6527039f6ba17"
     },
     {
       "name": "u64-max",
-      "size": 18446744073709551615,
-      "fingerprint": "fp1:d4d04f112f368f8089ebee56e8b445f7"
+      "size": "18446744073709551615",
+      "fingerprint": "fp1:cf6ed5fadf848a6a3941197f7cb91564"
     }
   ]
 }

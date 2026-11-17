@@ -1,0 +1,20 @@
+{
+  "name": "video-fingerprint",
+  "version": "0.1.0",
+  "description": "fp1 quick fingerprint for large video files (size + 3 sampled 64 KiB chunks, BLAKE3)",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./index.js" },
+    "./path": { "types": "./path.d.ts", "default": "./path.js" }
+  },
+  "bin": { "vfp-js": "./cli.js" },
+  "files": ["index.js", "index.d.ts", "path.js", "path.d.ts", "cli.js"],
+  "scripts": {
+    "test": "node --test",
+    "test:deno": "deno test --no-check --allow-read --allow-write --allow-env test/vectors.test.js"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0"
+  }
+}

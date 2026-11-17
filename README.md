@@ -11,6 +11,7 @@ The definition is in [SPEC.md](SPEC.md). Implementations must pass `vectors/vect
 |---|---|
 | `rust/` | crate `video-fingerprint` + CLI `vfp FILE...` |
 | `python/` | package `video_fingerprint` + `python -m video_fingerprint FILE...` |
+| `js/` | ESM package `video-fingerprint` (browsers, Node, Deno, Bun) + `node js/cli.js FILE...` |
 | `vectors/` | shared test vectors and their generator |
 
 ## Tests
@@ -19,7 +20,25 @@ The definition is in [SPEC.md](SPEC.md). Implementations must pass `vectors/vect
 cd rust && cargo test
 python -m venv .venv && .venv/Scripts/python -m pip install -e python   # bin/ on Linux
 .venv/Scripts/python -m unittest discover -s python/tests
+cd js && npm install && npm test && npm run test:deno
 ```
+
+## JavaScript: one API across runtimes
+
+```js
+import { fingerprintBlob } from 'video-fingerprint';        // runtime-neutral
+import { fingerprintPath } from 'video-fingerprint/path';   // Node, Deno, Bun (node:fs)
+
+await fingerprintBlob(fileFromInputOrDrop);              // browser File
+await fingerprintBlob(Bun.file(path));                   // Bun
+await fingerprintBlob(await fs.openAsBlob(path));        // Node 20+, Deno 2
+await fingerprintPath(path);                             // Node, Deno, Bun
+```
+
+A `Blob` is the cross-runtime file type: `slice()` is lazy, so only the three sampled 64 KiB
+ranges are read, even for multi-GB files. `fingerprintWith(size, readAt)` takes any async
+reader (HTTP range requests, File System Access handles, ...). BLAKE3 is `@noble/hashes`
+(pure JS, audited, no native or wasm build).
 
 `vectors/generate.py` writes `vectors.json` from the Python implementation; the Rust tests
 check the same file, so the two cross-check each other. Existing fp1 vectors must never change.

@@ -1,12 +1,23 @@
 use std::io;
 use video_fingerprint::{fingerprint_file, fingerprint_with, ranges, CHUNK};
 
-/// Test content per SPEC.md: BLAKE3 XOF of the vector name, byte o = XOF position o.
+/// Test content per SPEC.md: 64 KiB blocks, block i = BLAKE3 XOF(name || u64le(i))[..65536].
 fn content_reader(name: &str) -> impl FnMut(u64, &mut [u8]) -> io::Result<()> {
-    let mut xof = blake3::Hasher::new().update(name.as_bytes()).finalize_xof();
+    let prefix = name.as_bytes().to_vec();
+    let mut block = vec![0u8; CHUNK as usize];
     move |off, buf| {
-        xof.set_position(off);
-        xof.fill(buf);
+        let mut done = 0usize;
+        while done < buf.len() {
+            let pos = off + done as u64;
+            let (i, r) = (pos / CHUNK, (pos % CHUNK) as usize);
+            let mut h = blake3::Hasher::new();
+            h.update(&prefix);
+            h.update(&i.to_le_bytes());
+            h.finalize_xof().fill(&mut block);
+            let n = (CHUNK as usize - r).min(buf.len() - done);
+            buf[done..done + n].copy_from_slice(&block[r..r + n]);
+            done += n;
+        }
         Ok(())
     }
 }
@@ -21,7 +32,7 @@ fn vectors() -> Vec<(String, u64, String)> {
         .map(|x| {
             (
                 x["name"].as_str().unwrap().to_string(),
-                x["size"].as_u64().unwrap(),
+                x["size"].as_str().unwrap().parse().unwrap(),
                 x["fingerprint"].as_str().unwrap().to_string(),
             )
         })

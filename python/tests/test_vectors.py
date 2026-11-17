@@ -12,9 +12,17 @@ VECTORS = Path(__file__).resolve().parents[2] / "vectors" / "vectors.json"
 
 
 def content_reader(name):
-    """Test content per SPEC.md: BLAKE3 XOF of the vector name, byte o = XOF position o."""
-    h = blake3(name.encode())
-    return lambda off, n: h.digest(length=n, seek=off)
+    """Test content per SPEC.md: 64 KiB blocks, block i = BLAKE3 XOF(name || u64le(i))[:65536]."""
+    prefix = name.encode()
+
+    def read_at(off, n):
+        out = bytearray()
+        while len(out) < n:
+            i, r = divmod(off + len(out), CHUNK)
+            out += blake3(prefix + i.to_bytes(8, "little")).digest(length=CHUNK)[r:r + n - len(out)]
+        return bytes(out)
+
+    return read_at
 
 
 class Vectors(unittest.TestCase):
@@ -23,7 +31,7 @@ class Vectors(unittest.TestCase):
         self.assertGreaterEqual(len(vs), 10)
         for v in vs:
             with self.subTest(v["name"]):
-                self.assertEqual(fingerprint_with(v["size"], content_reader(v["name"])), v["fingerprint"])
+                self.assertEqual(fingerprint_with(int(v["size"]), content_reader(v["name"])), v["fingerprint"])
 
     def test_file_matches_callback(self):
         name, size = "file-roundtrip", 5 * CHUNK + 123

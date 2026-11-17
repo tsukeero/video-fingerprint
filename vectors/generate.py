@@ -32,16 +32,32 @@ SIZES = {
 }
 
 
+BLOCK = 65536
+
+
 def content_reader(name):
-    h = blake3(name.encode())
-    return lambda off, n: h.digest(length=n, seek=off)
+    """Test content per SPEC.md: 64 KiB blocks, block i = BLAKE3 XOF(name || u64le(i))[:65536]."""
+    prefix = name.encode()
+
+    def block(i):
+        return blake3(prefix + i.to_bytes(8, "little")).digest(length=BLOCK)
+
+    def read_at(off, n):
+        out = bytearray()
+        while len(out) < n:
+            i, r = divmod(off + len(out), BLOCK)
+            out += block(i)[r:r + n - len(out)]
+        return bytes(out)
+
+    return read_at
 
 
 def main():
-    vectors = [{"name": n, "size": s, "fingerprint": fingerprint_with(s, content_reader(n))} for n, s in SIZES.items()]
+    vectors = [{"name": n, "size": str(s), "fingerprint": fingerprint_with(s, content_reader(n))} for n, s in SIZES.items()]
     doc = {
+        "note": "size is a decimal string: 2^64-1 does not fit a JSON number in every language",
         "version": "fp1",
-        "content": "BLAKE3 XOF (plain hash mode) of the UTF-8 name; byte at offset o = XOF position o",
+        "content": "64 KiB blocks; block i = first 65536 bytes of BLAKE3 XOF (plain hash) of UTF-8 name + u64le(i)",
         "vectors": vectors,
     }
     out = Path(__file__).with_name("vectors.json")

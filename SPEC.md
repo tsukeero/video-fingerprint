@@ -57,11 +57,16 @@ fingerprints of different versions.
 
 ## Test vectors
 
-`vectors/vectors.json` lists `{ "name", "size", "fingerprint" }`. Test content is not stored;
+`vectors/vectors.json` lists `{ "name", "size", "fingerprint" }`, with `size` as a decimal string. Test content is not stored;
 it is generated so any language with BLAKE3 can reproduce it, including multi-terabyte cases:
 
-> The content of vector `name` is the BLAKE3 **extendable output** (XOF) of the UTF-8 bytes of
-> `name` (plain hash mode, no key), bytes `[0, size)`. Byte at offset `o` is XOF output position `o`.
+> The content of vector `name` is a sequence of 64 KiB blocks. Block `i` (from 0) is the first
+> 65 536 bytes of the BLAKE3 **extendable output** (plain hash mode, no key) of the UTF-8 bytes of
+> `name` followed by `i` as an unsigned 64-bit little-endian integer. The byte at offset `o` is
+> byte `o mod 65536` of block `floor(o / 65536)`. The content is bytes `[0, size)`.
+
+Any offset is computable with plain BLAKE3 and no XOF seeking, so huge vectors (up to
+`size = 2^64 - 1`) work in every language.
 
 Implementations must pass every vector. Implementations should expose a function that takes
 `size` and a "read `n` bytes at offset `o`" callback, so large vectors can be tested without files.
