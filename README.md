@@ -42,3 +42,7 @@ reader (HTTP range requests, File System Access handles, ...). BLAKE3 is `@noble
 
 `vectors/generate.py` writes `vectors.json` from the Python implementation; the Rust tests
 check the same file, so the two cross-check each other. Existing fp1 vectors must never change.
+
+## License
+
+[MIT](LICENSE). The same license applies to the Rust, Python and JavaScript implementations, the spec and the test vectors.

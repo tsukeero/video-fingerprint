@@ -3,6 +3,7 @@ name = "video-fingerprint"
 version = "0.1.0"
 edition = "2021"
 description = "fp1 quick fingerprint for large video files (size + 3 sampled 64 KiB chunks, BLAKE3)"
+license = "MIT"
 publish = false
 
 [dependencies]
