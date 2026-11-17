@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-fingerprint"
+version = "0.1.0"
+description = "fp1 quick fingerprint for large video files (size + 3 sampled 64 KiB chunks, BLAKE3)"
+requires-python = ">=3.9"
+dependencies = ["blake3>=0.4"]
+
+[tool.setuptools]
+packages = ["video_fingerprint"]
